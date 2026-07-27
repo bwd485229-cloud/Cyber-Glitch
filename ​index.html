@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Glitch: Overlord Horde</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background-color: #020208;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background-color: #040412;
+        }
+
+        /* واجهة HUD العليا */
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-card {
+            background: rgba(10, 15, 30, 0.88);
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 12px;
+            padding: 8px 14px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+            backdrop-filter: blur(6px);
+        }
+
+        .bar-container {
+            width: 120px;
+            height: 12px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #healthBar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0055, #ff5500);
+            box-shadow: 0 0 10px #ff0055;
+            transition: width 0.1s ease;
+        }
+
+        #xpBar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00f3ff, #0088ff);
+            box-shadow: 0 0 10px #00f3ff;
+            transition: width 0.15s ease;
+        }
+
+        .hud-text {
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .health-text { color: #ff0055; }
+        .xp-text { color: #00f3ff; }
+        .stats-text { color: #ffe600; font-size: 14px; font-weight: bold; text-align: center; }
+        .monster-text { color: #ff0055; font-size: 13px; font-weight: bold; margin-top: 2px; }
+
+        /* الخريطة المصغرة Minimap */
+        #minimapCanvas {
+            position: absolute;
+            top: 85px;
+            right: 15px;
+            width: 110px;
+            height: 110px;
+            background: rgba(5, 10, 25, 0.85);
+            border: 2px solid rgba(0, 243, 255, 0.5);
+            border-radius: 10px;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        }
+
+        /* عصا التحكم اللمسية Joystick */
+        #joystickContainer {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(0, 243, 255, 0.08);
+            border: 2px solid rgba(0, 243, 255, 0.4);
+            border-radius: 50%;
+            touch-action: none;
+            z-index: 20;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        #joystickKnob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 243, 255, 0.5);
+            border: 2px solid #00f3ff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px #00f3ff;
+            pointer-events: none;
+        }
+
+        /* زر Dash باللمس */
+        #btnDash {
+            position: absolute;
+            bottom: 40px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 0, 85, 0.25);
+            border: 3px solid #ff0055;
+            color: #ff0055;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        #btnDash:active {
+            background: rgba(255, 0, 85, 0.7);
+            box-shadow: 0 0 30px #ff0055;
+            transform: scale(0.92);
+        }
+
+        #btnDash.cooling {
+            opacity: 0.4;
+            border-color: #555555;
+            color: #888888;
+            box-shadow: none;
+        }
+
+        /* شاشة الترقيات */
+        #upgradeModal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(3, 3, 13, 0.92);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+
+        #upgradeModal h2 {
+            color: #00f3ff;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px #00f3ff;
+            text-transform: uppercase;
+        }
+
+        .cards-container {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 850px;
+            padding: 15px;
+        }
+
+        .upgrade-card {
+            background: rgba(15, 23, 42, 0.92);
+            border: 2px solid #00f3ff;
+            border-radius: 16px;
+            width: 200px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+
+        .upgrade-card:active {
+            transform: scale(0.95);
+        }
+
+        .card-icon { font-size: 36px; margin-bottom: 10px; }
+        .card-title { color: #ffffff; font-size: 15px; font-weight: bold; margin-bottom: 6px; text-align: center; }
+        .card-desc { color: #94a3b8; font-size: 12px; text-align: center; line-height: 1.4; }
+
+        /* شاشة الموت */
+        #gameOverModal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 0, 5, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        #gameOverModal h1 {
+            color: #ff0055;
+            font-size: 36px;
+            text-shadow: 0 0 20px #ff0055;
+            margin-bottom: 10px;
+        }
+
+        #gameOverModal p {
+            color: #cbd5e1;
+            font-size: 16px;
+            margin-bottom: 25px;
+        }
+
+        .restart-btn {
+            background: linear-gradient(45deg, #ff0055, #ff5500);
+            border: none;
+            color: #ffffff;
+            padding: 14px 36px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+    <canvas id="minimapCanvas" width="110" height="110"></canvas>
+
+    <!-- شريط البيانات HUD -->
+    <div id="hud">
+        <div class="hud-card">
+            <div class="hud-text health-text">الصحة | HP</div>
+            <div class="bar-container">
+                <div id="healthBar"></div>
+            </div>
+        </div>
+
+        <div class="hud-card">
+            <div class="stats-text" id="waveText">الموجة: 1</div>
+            <div class="monster-text" id="monsterCountText">الوحوش: 0</div>
+        </div>
+
+        <div class="hud-card">
+            <div class="hud-text xp-text" id="levelText">المستوى: 1</div>
+            <div class="bar-container">
+                <div id="xpBar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- عناصر التحكم باللمس -->
+    <div id="joystickContainer">
+        <div id="joystickKnob"></div>
+    </div>
+    <div id="btnDash">DASH [E]</div>
+
+    <!-- شاشة الترقيات -->
+    <div id="upgradeModal">
+        <h2>اختر ترقية النينجا</h2>
+        <div class="cards-container" id="cardsContainer"></div>
+    </div>
+
+    <!-- شاشة النهاية -->
+    <div id="gameOverModal">
+        <h1>تم اختراق النظام</h1>
+        <p id="finalScoreText">صمدت حتى الموجة: 1</p>
+        <button class="restart-btn" onclick="restartGame()">إعادة المحاولة</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const miniCanvas = document.getElementById('minimapCanvas');
+        const miniCtx = miniCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const world = {
+            width: 6000,
+            height: 6000
+        };
+
+        const camera = {
+            x: 0,
+            y: 0
+        };
+
+        let isGamePaused = false;
+        let isGameOver = false;
+        let currentWave = 1;
+        let enemySpawnTimer = 0;
+        let enemiesInWaveToSpawn = 60;
+        let enemiesSpawnedInWave = 0;
+        const maxActiveEnemiesCap = 200;
+
+        const inputKeys = {
+            up: false,
+            down: false,
+            left: false,
+            right: false
+        };
+
+        // النينجا مع تعديل توازن التلفيل ليكون أطول وأصعب
+        const player = {
+            x: world.width / 2,
+            y: world.height / 2,
+            radius: 16,
+            color: '#00f3ff',
+            speed: 5.5,
+            vx: 0,
+            vy: 0,
+            friction: 0.85,
+            maxHp: 120,
+            hp: 120,
+            level: 1,
+            xp: 0,
+            xpToNextLevel: 400, // رفع القيمة لجعل التلفيل أطول
+            dashCooldown: 0,
+            maxDashCooldown: 50,
+            isDashing: false,
+            dashTimer: 0,
+            dashSpeed: 20,
+            attackTimer: 0,
+            attackSpeed: 12,
+            damage: 42,
+            orbitalBladesCount: 1,
+            orbitalAngle: 0,
+            hasLightning: false,
+            invulnerableTimer: 0,
+            trailHistory: []
+        };
+
+        let enemies = [];
+        let playerBullets = [];
+        let enemyBullets = [];
+        let xpOrbs = [];
+        let healthPacks = [];
+        let particles = [];
+
+        // إعدادات الـ Joystick اللمسي
+        const joystickContainer = document.getElementById('joystickContainer');
+        const joystickKnob = document.getElementById('joystickKnob');
+        let joystickActive = false;
+        let joystickOrigin = { x: 0, y: 0 };
+        let joystickVector = { x: 0, y: 0 };
+        const joystickMaxRadius = 45;
+
+        joystickContainer.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = joystickContainer.getBoundingClientRect();
+            joystickOrigin = {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+            joystickActive = true;
+            updateJoystickPosition(touch);
+        });
+
+        joystickContainer.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!joystickActive) return;
+            updateJoystickPosition(e.touches[0]);
+        });
+
+        function resetJoystick(e) {
+            if (e) e.preventDefault();
+            joystickActive = false;
+            joystickVector = { x: 0, y: 0 };
+            joystickKnob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+        }
+
+        joystickContainer.addEventListener('touchend', resetJoystick);
+        joystickContainer.addEventListener('touchcancel', resetJoystick);
+
+        function updateJoystickPosition(touch) {
+            const dx = touch.clientX - joystickOrigin.x;
+            const dy = touch.clientY - joystickOrigin.y;
+            const distance = Math.hypot(dx, dy);
+            const angle = Math.atan2(dy, dx);
+            const clampedDist = Math.min(distance, joystickMaxRadius);
+
+            const knobX = Math.cos(angle) * clampedDist;
+            const knobY = Math.sin(angle) * clampedDist;
+
+            joystickKnob.style.transform = `translate(-50%, -50%) translate(${knobX}px, ${knobY}px)`;
+
+            joystickVector = {
+                x: knobX / joystickMaxRadius,
+                y: knobY / joystickMaxRadius
+            };
+        }
+
+        const availableUpgrades = [
+            {
+                id: 'orbital_blade',
+                title: 'شفرة نيونية تدور',
+                icon: '⚔️',
+                desc: 'تضيف شفرة حادة إضافية تدور حولك وتفرك الحشود.',
+                action: () => { player.orbitalBladesCount++; }
+            },
+            {
+                id: 'lightning_strike',
+                title: 'سيف الصاعقة الشاملة',
+                icon: '⚡',
+                desc: 'تمنح ضرباتك كهرباء تقفز بين عشرات الوحوش المتجاورة.',
+                action: () => { player.hasLightning = true; player.damage += 15; }
+            },
+            {
+                id: 'attack_speed',
+                title: 'تسريع الرشاش النيوني',
+                icon: '🌀',
+                desc: 'مضاعفة سرعة إطلاق سكاكين النيون لإبادة الحشود.',
+                action: () => { player.attackSpeed = Math.max(4, player.attackSpeed - 2); }
+            },
+            {
+                id: 'move_speed',
+                title: 'محرك النينجا السريع',
+                icon: '👟',
+                desc: 'زيادة السرعة وتقليل زمن شحن الـ Dash.',
+                action: () => { player.speed += 1.0; player.maxDashCooldown = Math.max(20, player.maxDashCooldown - 8); }
+            },
+            {
+                id: 'health_restore',
+                title: 'إصلاح درع الطاقة',
+                icon: '❤️',
+                desc: 'تستعيد 60% من صحتك وتزيد الحد الأقصى للصحة.',
+                action: () => { player.maxHp += 30; player.hp = Math.min(player.maxHp, player.hp + 60); }
+            }
+        ];
+
+        // تحكم الكمبيوتر: WASD + E / Space
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') inputKeys.up = true;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') inputKeys.down = true;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') inputKeys.left = true;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') inputKeys.right = true;
+            if (e.code === 'KeyE' || e.code === 'Space') triggerDash();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') inputKeys.up = false;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') inputKeys.down = false;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') inputKeys.left = false;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') inputKeys.right = false;
+        });
+
+        const dashBtn = document.getElementById('btnDash');
+        dashBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            triggerDash();
+        });
+
+        function triggerDash() {
+            if (player.dashCooldown <= 0 && !player.isDashing) {
+                player.isDashing = true;
+                player.dashTimer = 10;
+                player.dashCooldown = player.maxDashCooldown;
+                player.invulnerableTimer = 18;
+
+                for (let i = 0; i < 12; i++) {
+                    particles.push({
+                        x: player.x,
+                        y: player.y,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        radius: Math.random() * 4 + 2,
+                        color: '#00f3ff',
+                        alpha: 1,
+                        decay: 0.05
+                    });
+                }
+            }
+        }
+
+        function spawnEnemyHorde(count = 1) {
+            for (let i = 0; i < count; i++) {
+                if (enemies.length >= maxActiveEnemiesCap) break;
+
+                let spawnAngle = Math.random() * Math.PI * 2;
+                let spawnDist = Math.max(canvas.width, canvas.height) / 2 + 80 + Math.random() * 400;
+
+                let x = player.x + Math.cos(spawnAngle) * spawnDist;
+                let y = player.y + Math.sin(spawnAngle) * spawnDist;
+
+                x = Math.max(50, Math.min(world.width - 50, x));
+                y = Math.max(50, Math.min(world.height - 50, y));
+
+                const enemyTypes = [
+                    { type: 'chaser', color: '#ff0055', radius: 15, speed: 2.8, hp: 45 + (currentWave * 10), damage: 12 },
+                    { type: 'fast', color: '#00ff88', radius: 12, speed: 3.9, hp: 25 + (currentWave * 6), damage: 8 },
+                    { type: 'shooter', color: '#b000ff', radius: 16, speed: 2.0, hp: 35 + (currentWave * 8), damage: 12 },
+                    { type: 'tank', color: '#ffe600', radius: 26, speed: 1.4, hp: 140 + (currentWave * 35), damage: 25 }
+                ];
+
+                const selectedType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+
+                enemies.push({
+                    x: x,
+                    y: y,
+                    type: selectedType.type,
+                    color: selectedType.color,
+                    radius: selectedType.radius,
+                    speed: selectedType.speed,
+                    hp: selectedType.hp,
+                    maxHp: selectedType.hp,
+                    damage: selectedType.damage,
+                    shootTimer: Math.floor(Math.random() * 60)
+                });
+            }
+        }
+
+        function update() {
+            if (isGamePaused || isGameOver) return;
+
+            if (player.dashCooldown > 0) {
+                player.dashCooldown--;
+                dashBtn.classList.add('cooling');
+            } else {
+                dashBtn.classList.remove('cooling');
+            }
+
+            if (player.invulnerableTimer > 0) player.invulnerableTimer--;
+
+            let moveX = 0;
+            let moveY = 0;
+
+            if (joystickActive && (joystickVector.x !== 0 || joystickVector.y !== 0)) {
+                moveX = joystickVector.x;
+                moveY = joystickVector.y;
+            } else {
+                if (inputKeys.up) moveY -= 1;
+                if (inputKeys.down) moveY += 1;
+                if (inputKeys.left) moveX -= 1;
+                if (inputKeys.right) moveX += 1;
+
+                if (moveX !== 0 && moveY !== 0) {
+                    moveX *= 0.7071;
+                    moveY *= 0.7071;
+                }
+            }
+
+            if (player.isDashing) {
+                player.vx = moveX * player.dashSpeed;
+                player.vy = moveY * player.dashSpeed;
+                player.dashTimer--;
+                if (player.dashTimer <= 0) player.isDashing = false;
+            } else {
+                player.vx += moveX * player.speed * 0.3;
+                player.vy += moveY * player.speed * 0.3;
+                player.vx *= player.friction;
+                player.vy *= player.friction;
+            }
+
+            player.x += player.vx;
+            player.y += player.vy;
+
+            player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y));
+
+            camera.x = player.x - canvas.width / 2;
+            camera.y = player.y - canvas.height / 2;
+
+            camera.x = Math.max(0, Math.min(world.width - canvas.width, camera.x));
+            camera.y = Math.max(0, Math.min(world.height - canvas.height, camera.y));
+
+            if (Math.abs(player.vx) > 0.5 || Math.abs(player.vy) > 0.5) {
+                player.trailHistory.push({ x: player.x, y: player.y, alpha: 0.5 });
+                if (player.trailHistory.length > 8) player.trailHistory.shift();
+            }
+
+            player.orbitalAngle += 0.07;
+
+            // إطلاق هجوم تلقائي نحو أقرب عدو
+            player.attackTimer++;
+            if (player.attackTimer >= player.attackSpeed && enemies.length > 0) {
+                let closestEnemy = null;
+                let minDistance = Infinity;
+
+                for (let i = 0; i < enemies.length; i++) {
+                    let dist = Math.hypot(enemies[i].x - player.x, enemies[i].y - player.y);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestEnemy = enemies[i];
+                    }
+                }
+
+                if (closestEnemy && minDistance < 650) {
+                    let angle = Math.atan2(closestEnemy.y - player.y, closestEnemy.x - player.x);
+                    playerBullets.push({
+                        x: player.x,
+                        y: player.y,
+                        vx: Math.cos(angle) * 15,
+                        vy: Math.sin(angle) * 15,
+                        radius: 5,
+                        damage: player.damage,
+                        color: '#00f3ff',
+                        hasLightning: player.hasLightning
+                    });
+                    player.attackTimer = 0;
+                }
+            }
+
+            // طلقات النينجا
+            for (let i = playerBullets.length - 1; i >= 0; i--) {
+                let b = playerBullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+
+                if (b.x < 0 || b.x > world.width || b.y < 0 || b.y > world.height) {
+                    playerBullets.splice(i, 1);
+                    continue;
+                }
+
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    let dist = Math.hypot(e.x - b.x, e.y - b.y);
+
+                    if (dist < e.radius + b.radius) {
+                        e.hp -= b.damage;
+
+                        if (b.hasLightning) {
+                            for (let k = 0; k < enemies.length; k++) {
+                                if (k !== j) {
+                                    let chainDist = Math.hypot(enemies[k].x - e.x, enemies[k].y - e.y);
+                                    if (chainDist < 140) {
+                                        enemies[k].hp -= b.damage * 0.5;
+                                    }
+                                }
+                            }
+                        }
+
+                        for (let p = 0; p < 3; p++) {
+                            particles.push({
+                                x: b.x,
+                                y: b.y,
+                                vx: (Math.random() - 0.5) * 4,
+                                vy: (Math.random() - 0.5) * 4,
+                                radius: 2,
+                                color: b.color,
+                                alpha: 1,
+                                decay: 0.1
+                            });
+                        }
+
+                        playerBullets.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+
+            // ترسبن حشود الوحوش
+            enemySpawnTimer++;
+            if (enemySpawnTimer >= 6 && enemiesSpawnedInWave < enemiesInWaveToSpawn) {
+                spawnEnemyHorde(2);
+                enemiesSpawnedInWave += 2;
+                enemySpawnTimer = 0;
+            }
+
+            document.getElementById('monsterCountText').innerText = `الوحوش: ${enemies.length}`;
+
+            if (enemiesSpawnedInWave >= enemiesInWaveToSpawn && enemies.length === 0) {
+                currentWave++;
+                enemiesSpawnedInWave = 0;
+                enemiesInWaveToSpawn = 60 + currentWave * 35;
+                document.getElementById('waveText').innerText = `الموجة: ${currentWave}`;
+            }
+
+            // تحديث حركة الوحوش
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                let angle = Math.atan2(player.y - e.y, player.x - e.x);
+
+                e.x += Math.cos(angle) * e.speed;
+                e.y += Math.sin(angle) * e.speed;
+
+                if (e.type === 'shooter') {
+                    e.shootTimer++;
+                    if (e.shootTimer >= 80) {
+                        enemyBullets.push({
+                            x: e.x,
+                            y: e.y,
+                            vx: Math.cos(angle) * 7,
+                            vy: Math.sin(angle) * 7,
+                            radius: 6,
+                            damage: e.damage,
+                            color: '#ff0055'
+                        });
+                        e.shootTimer = 0;
+                    }
+                }
+
+                if (player.orbitalBladesCount > 0) {
+                    for (let b = 0; b < player.orbitalBladesCount; b++) {
+                        let bladeAngle = player.orbitalAngle + (b * (Math.PI * 2 / player.orbitalBladesCount));
+                        let bx = player.x + Math.cos(bladeAngle) * 70;
+                        let by = player.y + Math.sin(bladeAngle) * 70;
+
+                        let distToBlade = Math.hypot(e.x - bx, e.y - by);
+                        if (distToBlade < e.radius + 12) {
+                            e.hp -= 3.0;
+                        }
+                    }
+                }
+
+                let distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+                if (distToPlayer < player.radius + e.radius) {
+                    if (player.invulnerableTimer <= 0) {
+                        takeDamage(e.damage);
+                        player.invulnerableTimer = 22;
+                    }
+                }
+
+                if (e.hp <= 0) {
+                    for (let p = 0; p < 6; p++) {
+                        particles.push({
+                            x: e.x,
+                            y: e.y,
+                            vx: (Math.random() - 0.5) * 6,
+                            vy: (Math.random() - 0.5) * 6,
+                            radius: 3,
+                            color: e.color,
+                            alpha: 1,
+                            decay: 0.05
+                        });
+                    }
+
+                    // قيمة الـ XP مضبوطة لجعل المستوى يأخذ وقتاً ممتعاً
+                    xpOrbs.push({
+                        x: e.x,
+                        y: e.y,
+                        value: 10 + (currentWave * 2),
+                        radius: 5
+                    });
+
+                    if (Math.random() < 0.08) {
+                        healthPacks.push({
+                            x: e.x,
+                            y: e.y,
+                            healAmount: 20,
+                            radius: 8
+                        });
+                    }
+
+                    enemies.splice(i, 1);
+                }
+            }
+
+            // طلقات الأعداء
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let eb = enemyBullets[i];
+                eb.x += eb.vx;
+                eb.y += eb.vy;
+
+                if (eb.x < 0 || eb.x > world.width || eb.y < 0 || eb.y > world.height) {
+                    enemyBullets.splice(i, 1);
+                    continue;
+                }
+
+                let dist = Math.hypot(player.x - eb.x, player.y - eb.y);
+                if (dist < player.radius + eb.radius) {
+                    if (player.invulnerableTimer <= 0) {
+                        takeDamage(eb.damage);
+                        player.invulnerableTimer = 18;
+                    }
+                    enemyBullets.splice(i, 1);
+                }
+            }
+
+            // شفط كريستالات الخبرة
+            for (let i = xpOrbs.length - 1; i >= 0; i--) {
+                let orb = xpOrbs[i];
+                let dist = Math.hypot(player.x - orb.x, player.y - orb.y);
+
+                if (dist < 150) {
+                    let angle = Math.atan2(player.y - orb.y, player.x - orb.x);
+                    orb.x += Math.cos(angle) * 9;
+                    orb.y += Math.sin(angle) * 9;
+                }
+
+                if (dist < player.radius + orb.radius) {
+                    addXp(orb.value);
+                    xpOrbs.splice(i, 1);
+                }
+            }
+
+            // علاج الصحة
+            for (let i = healthPacks.length - 1; i >= 0; i--) {
+                let hpBox = healthPacks[i];
+                let dist = Math.hypot(player.x - hpBox.x, player.y - hpBox.y);
+
+                if (dist < 120) {
+                    let angle = Math.atan2(player.y - hpBox.y, player.x - hpBox.x);
+                    hpBox.x += Math.cos(angle) * 8;
+                    hpBox.y += Math.sin(angle) * 8;
+                }
+
+                if (dist < player.radius + hpBox.radius) {
+                    player.hp = Math.min(player.maxHp, player.hp + hpBox.healAmount);
+                    document.getElementById('healthBar').style.width = `${(player.hp / player.maxHp) * 100}%`;
+                    healthPacks.splice(i, 1);
+                }
+            }
+
+            // الجزيئات
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function takeDamage(amount) {
+            player.hp -= amount;
+            if (player.hp < 0) player.hp = 0;
+
+            document.getElementById('healthBar').style.width = `${(player.hp / player.maxHp) * 100}%`;
+
+            canvas.style.transform = 'translate(6px, 6px)';
+            setTimeout(() => { canvas.style.transform = 'translate(0, 0)'; }, 50);
+
+            if (player.hp <= 0) {
+                triggerGameOver();
+            }
+        }
+
+        // زيادة النسبة ليكون كل مستوى أطول بكثير من السابق
+        function addXp(amount) {
+            player.xp += amount;
+
+            if (player.xp >= player.xpToNextLevel) {
+                player.xp -= player.xpToNextLevel;
+                player.level++;
+                player.xpToNextLevel = Math.floor(player.xpToNextLevel * 1.85); // تكبير قفزة التلفيل
+
+                document.getElementById('levelText').innerText = `المستوى: ${player.level}`;
+                openUpgradeModal();
+            }
+
+            document.getElementById('xpBar').style.width = `${(player.xp / player.xpToNextLevel) * 100}%`;
+        }
+
+        function openUpgradeModal() {
+            isGamePaused = true;
+            const modal = document.getElementById('upgradeModal');
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+
+            const shuffled = [...availableUpgrades].sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, 3);
+
+            selected.forEach(upgrade => {
+                const card = document.createElement('div');
+                card.className = 'upgrade-card';
+                card.innerHTML = `
+                    <div class="card-icon">${upgrade.icon}</div>
+                    <div class="card-title">${upgrade.title}</div>
+                    <div class="card-desc">${upgrade.desc}</div>
+                `;
+                card.onclick = () => {
+                    upgrade.action();
+                    modal.style.display = 'none';
+                    isGamePaused = false;
+                };
+                container.appendChild(card);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        function triggerGameOver() {
+            isGameOver = true;
+            document.getElementById('finalScoreText').innerText = `صمدت حتى الموجة: ${currentWave} | مستوى النينجا: ${player.level}`;
+            document.getElementById('gameOverModal').style.display = 'flex';
+        }
+
+        function restartGame() {
+            player.hp = player.maxHp;
+            player.xp = 0;
+            player.level = 1;
+            player.xpToNextLevel = 400;
+            player.x = world.width / 2;
+            player.y = world.height / 2;
+            player.orbitalBladesCount = 1;
+            player.hasLightning = false;
+            player.attackSpeed = 12;
+            player.damage = 42;
+
+            currentWave = 1;
+            enemiesInWaveToSpawn = 60;
+            enemiesSpawnedInWave = 0;
+
+            enemies = [];
+            playerBullets = [];
+            enemyBullets = [];
+            xpOrbs = [];
+            healthPacks = [];
+            particles = [];
+
+            document.getElementById('healthBar').style.width = '100%';
+            document.getElementById('xpBar').style.width = '0%';
+            document.getElementById('levelText').innerText = 'المستوى: 1';
+            document.getElementById('waveText').innerText = 'الموجة: 1';
+
+            document.getElementById('gameOverModal').style.display = 'none';
+            isGameOver = false;
+            isGamePaused = false;
+        }
+
+        // رسم الأعداء بأشكال آلية سيبرانية فخمة بدلاً من الدوائر البسيطة
+        function drawEnemyVisuals(e) {
+            let angle = Math.atan2(player.y - e.y, player.x - e.x);
+
+            ctx.save();
+            ctx.translate(e.x, e.y);
+
+            if (e.type === 'chaser') {
+                // العنكبوت السيبراني الشرس (Chaser)
+                ctx.rotate(angle);
+                ctx.fillStyle = e.color;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = e.color;
+                ctx.shadowBlur = 16;
+
+                ctx.beginPath();
+                let spikes = 6;
+                for (let s = 0; s < spikes; s++) {
+                    let a = (s * Math.PI * 2) / spikes;
+                    let r = s % 2 === 0 ? e.radius : e.radius * 0.5;
+                    let px = Math.cos(a) * r;
+                    let py = Math.sin(a) * r;
+                    if (s === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, e.radius * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (e.type === 'fast') {
+                // المركبة السريعة الانسيابية (Fast)
+                ctx.rotate(angle);
+                ctx.fillStyle = e.color;
+                ctx.strokeStyle = '#00ffcc';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = e.color;
+                ctx.shadowBlur = 18;
+
+                ctx.beginPath();
+                ctx.moveTo(e.radius * 1.4, 0);
+                ctx.lineTo(-e.radius * 0.9, -e.radius * 0.9);
+                ctx.lineTo(-e.radius * 0.4, 0);
+                ctx.lineTo(-e.radius * 0.9, e.radius * 0.9);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // نفاث خلفي
+                ctx.fillStyle = '#ffe600';
+                ctx.beginPath();
+                ctx.arc(-e.radius * 0.6, 0, e.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (e.type === 'shooter') {
+                // الدرون المسدس ذو المدفع الدوار (Shooter)
+                ctx.fillStyle = e.color;
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = e.color;
+                ctx.shadowBlur = 15;
+
+                let rotation = Date.now() * 0.003;
+                ctx.beginPath();
+                for (let h = 0; h < 6; h++) {
+                    let ha = rotation + (h * Math.PI / 3);
+                    let hx = Math.cos(ha) * e.radius;
+                    let hy = Math.sin(ha) * e.radius;
+                    if (h === 0) ctx.moveTo(hx, hy);
+                    else ctx.lineTo(hx, hy);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // المدفع المتجه نحو اللاعب
+                ctx.rotate(angle);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, -3, e.radius * 1.2, 6);
+
+                ctx.fillStyle = '#ff0055';
+                ctx.beginPath();
+                ctx.arc(0, 0, e.radius * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (e.type === 'tank') {
+                // العملاق الآلي الثقيل (Tank)
+                ctx.rotate(angle);
+                ctx.fillStyle = '#1e1b4b';
+                ctx.strokeStyle = e.color;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = e.color;
+                ctx.shadowBlur = 20;
+
+                ctx.beginPath();
+                let octSides = 8;
+                for (let os = 0; os < octSides; os++) {
+                    let oa = (os * Math.PI * 2) / octSides;
+                    let ox = Math.cos(oa) * e.radius;
+                    let oy = Math.sin(oa) * e.radius;
+                    if (os === 0) ctx.moveTo(ox, oy);
+                    else ctx.lineTo(ox, oy);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                let pulse = Math.sin(Date.now() * 0.008) * 3;
+                ctx.fillStyle = e.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, (e.radius * 0.4) + pulse, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-e.radius * 0.4, -e.radius * 0.4, e.radius * 0.8, e.radius * 0.8);
+            }
+
+            // شريط صحة الأعداء
+            if (e.hp < e.maxHp) {
+                ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                ctx.fillRect(-15, -e.radius - 10, 30, 4);
+                ctx.fillStyle = '#ff0055';
+                ctx.fillRect(-15, -e.radius - 10, (e.hp / e.maxHp) * 30, 4);
+            }
+
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            // شبكة العالم الضخم
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
+            ctx.lineWidth = 1;
+            const gridSize = 80;
+            for (let x = 0; x <= world.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, world.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= world.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(world.width, y);
+                ctx.stroke();
+            }
+
+            // حدود الخريطة
+            ctx.strokeStyle = '#ff0055';
+            ctx.lineWidth = 8;
+            ctx.shadowColor = '#ff0055';
+            ctx.shadowBlur = 20;
+            ctx.strokeRect(0, 0, world.width, world.height);
+            ctx.shadowBlur = 0;
+
+            // حزم الصحة
+            for (let hpBox of healthPacks) {
+                ctx.save();
+                ctx.fillStyle = '#00ffaa';
+                ctx.shadowColor = '#00ffaa';
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.arc(hpBox.x, hpBox.y, hpBox.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // كريستالات الخبرة
+            for (let orb of xpOrbs) {
+                ctx.save();
+                ctx.fillStyle = '#ffe600';
+                ctx.shadowColor = '#ffe600';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // الجزيئات
+            for (let p of particles) {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // طلقات النينجا
+            for (let b of playerBullets) {
+                ctx.save();
+                ctx.fillStyle = b.color;
+                ctx.shadowColor = b.color;
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // طلقات الأعداء
+            for (let eb of enemyBullets) {
+                ctx.save();
+                ctx.fillStyle = eb.color;
+                ctx.shadowColor = eb.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(eb.x, eb.y, eb.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // رسم الأعداء بالتصاميم الآلية الجديدة
+            for (let e of enemies) {
+                drawEnemyVisuals(e);
+            }
+
+            // رسم مسار الشبح
+            for (let t of player.trailHistory) {
+                ctx.save();
+                ctx.globalAlpha = t.alpha;
+                ctx.fillStyle = '#00f3ff';
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, player.radius * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // رسم النينجا
+            ctx.save();
+            ctx.fillStyle = player.color;
+            ctx.shadowColor = player.color;
+            ctx.shadowBlur = player.invulnerableTimer > 0 ? 30 : 18;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // عين النينجا
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(player.x + 4, player.y - 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // الشفرات الدوارة
+            if (player.orbitalBladesCount > 0) {
+                for (let b = 0; b < player.orbitalBladesCount; b++) {
+                    let angle = player.orbitalAngle + (b * (Math.PI * 2 / player.orbitalBladesCount));
+                    let bx = player.x + Math.cos(angle) * 70;
+                    let by = player.y + Math.sin(angle) * 70;
+
+                    ctx.fillStyle = '#00f3ff';
+                    ctx.shadowColor = '#00f3ff';
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            ctx.restore();
+
+            ctx.restore();
+
+            // رسم الخريطة المصغرة Minimap
+            drawMinimap();
+        }
+
+        function drawMinimap() {
+            miniCtx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+
+            const scaleX = miniCanvas.width / world.width;
+            const scaleY = miniCanvas.height / world.height;
+
+            // موقع اللاعب
+            miniCtx.fillStyle = '#00f3ff';
+            miniCtx.beginPath();
+            miniCtx.arc(player.x * scaleX, player.y * scaleY, 3, 0, Math.PI * 2);
+            miniCtx.fill();
+
+            // مواقع الأعداء
+            miniCtx.fillStyle = '#ff0055';
+            for (let e of enemies) {
+                miniCtx.beginPath();
+                miniCtx.arc(e.x * scaleX, e.y * scaleY, 1.5, 0, Math.PI * 2);
+                miniCtx.fill();
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
