@@ -1,0 +1,361 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+body {
+    background-color: #020208;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    background-color: #040412;
+}
+
+/* واجهة HUD العليا */
+#hud {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.hud-card {
+    background: rgba(10, 15, 30, 0.88);
+    border: 1px solid rgba(0, 243, 255, 0.4);
+    border-radius: 12px;
+    padding: 8px 14px;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+    backdrop-filter: blur(6px);
+}
+
+.bar-container {
+    width: 110px;
+    height: 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#healthBar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff0055, #ff5500);
+    box-shadow: 0 0 10px #ff0055;
+    transition: width 0.1s ease;
+}
+
+#xpBar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #00f3ff, #0088ff);
+    box-shadow: 0 0 10px #00f3ff;
+    transition: width 0.15s ease;
+}
+
+.hud-text {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.health-text { color: #ff0055; }
+.xp-text { color: #00f3ff; }
+.stats-text { color: #ffe600; font-size: 13px; font-weight: bold; text-align: center; }
+.monster-text { color: #ff0055; font-size: 12px; font-weight: bold; margin-top: 2px; }
+.coin-hud-text { color: #ffd700; font-size: 14px; font-weight: bold; text-align: center; }
+.level-hud-text { color: #aa66ff; font-size: 12px; font-weight: bold; text-align: center; margin-top: 2px; }
+
+/* الخريطة المصغرة Minimap */
+#minimapCanvas {
+    position: absolute;
+    top: 85px;
+    left: 15px;
+    width: 105px;
+    height: 105px;
+    background: rgba(5, 10, 25, 0.88);
+    border: 2px solid rgba(0, 243, 255, 0.5);
+    border-radius: 12px;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);
+}
+
+/* عصا التحكم اللمسية Joystick */
+#joystickContainer {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    width: 120px;
+    height: 120px;
+    background: rgba(0, 243, 255, 0.08);
+    border: 2px solid rgba(0, 243, 255, 0.4);
+    border-radius: 50%;
+    touch-action: none;
+    z-index: 20;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+}
+
+#joystickKnob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 243, 255, 0.5);
+    border: 2px solid #00f3ff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 15px #00f3ff;
+    pointer-events: none;
+}
+
+/* زر Dash باللمس */
+#btnDash {
+    position: absolute;
+    bottom: 40px;
+    right: 30px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 0, 85, 0.25);
+    border: 3px solid #ff0055;
+    color: #ff0055;
+    font-size: 15px;
+    font-weight: bold;
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+#btnDash:active {
+    background: rgba(255, 0, 85, 0.7);
+    box-shadow: 0 0 30px #ff0055;
+    transform: scale(0.92);
+}
+
+#btnDash.cooling {
+    opacity: 0.4;
+    border-color: #555555;
+    color: #888888;
+    box-shadow: none;
+}
+
+/* شاشات النوافذ Modals */
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(3, 3, 12, 0.94);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+}
+
+.modal-title {
+    color: #00f3ff;
+    font-size: 30px;
+    font-weight: 900;
+    margin-bottom: 12px;
+    text-shadow: 0 0 20px #00f3ff;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.modal-subtitle {
+    color: #ffd700;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 25px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.btn-main {
+    background: linear-gradient(45deg, #00f3ff, #0066ff);
+    border: none;
+    color: #ffffff;
+    padding: 15px 42px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.5);
+    margin: 10px;
+    min-width: 220px;
+    text-align: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-main:active {
+    transform: scale(0.94);
+    box-shadow: 0 0 35px rgba(0, 243, 255, 0.8);
+}
+
+.btn-secondary {
+    background: linear-gradient(45deg, #ff0055, #ff5500);
+    border: none;
+    color: #ffffff;
+    padding: 15px 42px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(255, 0, 85, 0.5);
+    margin: 10px;
+    min-width: 220px;
+    text-align: center;
+    transition: transform 0.15s;
+}
+
+.btn-secondary:active {
+    transform: scale(0.94);
+}
+
+.btn-skip {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    color: #94a3b8;
+    padding: 12px 32px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    margin-top: 12px;
+    min-width: 160px;
+    text-align: center;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.btn-skip:active {
+    transform: scale(0.94);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* بطاقات المتجر والترقيات */
+.cards-container {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 850px;
+    padding: 15px;
+    max-height: 60vh;
+    overflow-y: auto;
+    touch-action: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.skin-card {
+    background: rgba(15, 23, 42, 0.92);
+    border: 2px solid rgba(0, 243, 255, 0.4);
+    border-radius: 16px;
+    width: 170px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    touch-action: auto;
+}
+
+.skin-card.selected {
+    border-color: #00ff66;
+    box-shadow: 0 0 20px #00ff66;
+}
+
+.skin-preview {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-bottom: 12px;
+    box-shadow: 0 0 15px currentColor;
+}
+
+.skin-name {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+.skin-price {
+    color: #ffd700;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.upgrade-card {
+    background: rgba(15, 23, 42, 0.92);
+    border: 2px solid #00f3ff;
+    border-radius: 16px;
+    width: 200px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+}
+
+.upgrade-card:active {
+    transform: scale(0.95);
+}
+
+.card-icon { font-size: 36px; margin-bottom: 10px; }
+.card-title { color: #ffffff; font-size: 15px; font-weight: bold; margin-bottom: 6px; text-align: center; }
+.card-desc { color: #94a3b8; font-size: 12px; text-align: center; line-height: 1.4; }
+
+/* رسالة مخصصة */
+.toast-message {
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 0, 85, 0.9);
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 40px;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 200;
+    box-shadow: 0 0 30px rgba(255, 0, 85, 0.6);
+    border: 2px solid #ff0055;
+    backdrop-filter: blur(4px);
+    display: none;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
